@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>生成物クイズ</title>
+<style>
+:root{font-family:system-ui,'Yu Gothic',sans-serif;color:#18302e;background:#eef5f2}*{box-sizing:border-box}body{margin:0;padding:32px 16px}main{max-width:700px;margin:auto}header{margin:12px 0 25px}.label{color:#367d68;font-weight:700;letter-spacing:.12em;font-size:12px}h1{font-size:30px;margin:10px 0}p{line-height:1.7;color:#526762}.card{background:white;padding:28px;border-radius:22px;box-shadow:0 12px 40px #16392a0b;margin-top:18px}.controls{display:flex;gap:10px;flex-wrap:wrap}button,select,input{font:inherit;border-radius:10px;border:1px solid #cbdad4;padding:12px}button{cursor:pointer;background:#edf4f0;color:#18302e;font-weight:600}button.primary{background:#176f57;color:white;border-color:#176f57}button:disabled{opacity:.45;cursor:default}select{background:white;max-width:100%}.meta{display:flex;justify-content:space-between;color:#587268;font-size:14px}progress{width:100%;height:7px;accent-color:#258968;margin:16px 0 24px}.tag{display:inline-block;padding:6px 12px;background:#edf5f1;border-radius:30px;font-size:13px}.formula{font-size:42px;font-weight:650;text-align:center;padding:30px 0 20px}label{display:block;font-size:14px;margin-bottom:8px}input{width:100%;font-size:22px;background:#fafcfb}input:focus{outline:2px solid #4f9c80}small{display:block;color:#6a7c75;line-height:1.7;margin:10px 0 20px}.feedback{margin:20px 0;padding:16px;border-radius:12px;background:#eef6f1;line-height:1.8}.wrong{background:#fff1e9}.hidden{display:none!important}.actions{display:flex;gap:10px;flex-wrap:wrap}.score{font-size:46px;font-weight:750;margin:20px 0}table{border-collapse:collapse;width:100%;margin-top:20px;font-size:14px}td,th{text-align:left;padding:12px 5px;border-bottom:1px solid #e6eeea}footer{color:#74877f;font-size:12px;margin:22px 4px;line-height:1.8}@media(max-width:480px){.card{padding:20px}h1{font-size:26px}.formula{font-size:34px}body{padding-top:18px}}
+.options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}.option{font-size:22px;min-height:56px}.option:disabled{opacity:1}.option.correct{background:#d9f1e4;border-color:#268060}.option.incorrect{background:#ffeadf;border-color:#bd6247}.option:focus-visible{outline:2px solid #176f57;outline-offset:2px}</style></head><body><main><header><div class="label">CHEMISTRY PRACTICE</div><h1>反応後は、何になる？</h1><p>反応前の物質を見て、生成物を4つの選択肢から選ぼう。</p></header>
+<div class="controls"><select id="mode" aria-label="出題範囲"><option value="all">すべて · 24問</option><option value="oxidant">酸化剤 · 12問</option><option value="reductant">還元剤 · 12問</option></select><button id="restart">シャッフルして開始</button></div>
+<section class="card" id="quiz"><div class="meta"><span id="count"></span><span id="points"></span></div><progress id="progress" value="0" max="24"></progress><div id="tag" class="tag"></div><div id="question" class="formula"></div><div id="options" class="options" role="group" aria-label="生成物の選択肢"></div><div class="actions"><button id="reveal" type="button">答えを見る</button><button class="primary hidden" id="next" type="button">次の問題 →</button></div><div id="feedback" class="feedback hidden" aria-live="polite"></div></section>
+<section class="card hidden" id="result"><div class="label">RESULT</div><h2>おつかれさま！</h2><div id="score" class="score"></div><p id="message"></p><div class="actions"><button class="primary" id="retry">間違えた問題を復習</button><button id="again">もう一度挑戦</button></div><div id="review"></div></section><footer>H₂O₂とSO₂は、酸化剤・還元剤のどちらとして働くかで生成物が変わります。<br>MnO₄⁻の塩基性条件は、添付の表にあるMnO₂への変化を出題します。</footer></main>
+<script>
+const data=[
+['Cl₂','Cl⁻','Cl-',0],['I₂','I⁻','I-',0],['H₂O₂','H₂O','H2O',0],['Cr₂O₇²⁻（酸性）','Cr³⁺','Cr3+',0],['熱濃硫酸 H₂SO₄','SO₂','SO2',0],['O₃','O₂','O2',0],['MnO₄⁻（酸性）','Mn²⁺','Mn2+',0],['MnO₄⁻（塩基性）','MnO₂','MnO2',0],['MnO₂（酸性）','Mn²⁺','Mn2+',0],['濃硝酸 HNO₃','NO₂','NO2',0],['希硝酸 HNO₃','NO','NO',0],['SO₂','S','S',0],
+['H₂','H⁺','H+',1],['Cu','Cu²⁺','Cu2+',1],['Fe²⁺','Fe³⁺','Fe3+',1],['C₂O₄²⁻','CO₂','CO2',1],['H₂S','S','S',1],['SO₂','SO₄²⁻','SO42-',1],['Sn²⁺','Sn⁴⁺','Sn4+',1],['Cl⁻','Cl₂','Cl2',1],['I⁻','I₂','I2',1],['S₂O₃²⁻','S₄O₆²⁻','S4O62-',1],['H₂O₂','O₂','O2',1],['H₂C₂O₄','CO₂','CO2',1]
+];
+const choices = [
+  [
+    "Cl₂",
+    "Cl⁻",
+    "ClO⁻",
+    "ClO₃⁻"
+  ],
+  [
+    "I⁻",
+    "I₂",
+    "IO₃⁻",
+    "I₃⁻"
+  ],
+  [
+    "O₂",
+    "OH⁻",
+    "H₂O",
+    "H₂"
+  ],
+  [
+    "CrO₄²⁻",
+    "Cr²⁺",
+    "Cr³⁺",
+    "CrO₂⁻"
+  ],
+  [
+    "S",
+    "SO₃",
+    "H₂S",
+    "SO₂"
+  ],
+  [
+    "O₂",
+    "H₂O₂",
+    "O²⁻",
+    "O₃"
+  ],
+  [
+    "MnO₂",
+    "Mn²⁺",
+    "MnO₄²⁻",
+    "Mn³⁺"
+  ],
+  [
+    "MnO₄²⁻",
+    "Mn²⁺",
+    "Mn₂O₃",
+    "MnO₂"
+  ],
+  [
+    "Mn²⁺",
+    "Mn³⁺",
+    "MnO₄⁻",
+    "MnO₄²⁻"
+  ],
+  [
+    "NO",
+    "NO₂⁻",
+    "NO₂",
+    "N₂O"
+  ],
+  [
+    "NO₂",
+    "N₂O",
+    "NO₂⁻",
+    "NO"
+  ],
+  [
+    "SO₄²⁻",
+    "S",
+    "H₂S",
+    "SO₃²⁻"
+  ],
+  [
+    "H⁻",
+    "H₂O",
+    "H⁺",
+    "OH⁻"
+  ],
+  [
+    "Cu⁺",
+    "Cu²⁺",
+    "CuO",
+    "Cu₂O"
+  ],
+  [
+    "Fe³⁺",
+    "Fe",
+    "Fe²⁺",
+    "Fe(OH)₃"
+  ],
+  [
+    "CO",
+    "CO₃²⁻",
+    "HCO₃⁻",
+    "CO₂"
+  ],
+  [
+    "SO₂",
+    "S",
+    "SO₄²⁻",
+    "S²⁻"
+  ],
+  [
+    "S",
+    "SO₃²⁻",
+    "SO₄²⁻",
+    "S₂O₃²⁻"
+  ],
+  [
+    "Sn⁴⁺",
+    "Sn",
+    "Sn³⁺",
+    "SnO"
+  ],
+  [
+    "ClO⁻",
+    "ClO₃⁻",
+    "Cl⁻",
+    "Cl₂"
+  ],
+  [
+    "I₃⁻",
+    "I₂",
+    "IO₃⁻",
+    "I⁻"
+  ],
+  [
+    "SO₄²⁻",
+    "S₂O₄²⁻",
+    "S₄O₆²⁻",
+    "SO₃²⁻"
+  ],
+  [
+    "H₂O",
+    "O₂",
+    "O₃",
+    "OH⁻"
+  ],
+  [
+    "CO₂",
+    "CO",
+    "HCOOH",
+    "CO₃²⁻"
+  ]
+];
+const $=id=>document.getElementById(id);let deck=[],index=0,correct=0,missed=[],history=[],locked=false;
+function start(items){deck=[...items];for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}index=0;correct=0;missed=[];history=[];$('quiz').classList.remove('hidden');$('result').classList.add('hidden');render()}
+function selected(){return data.filter(q=>$('mode').value==='all'||q[3]===($('mode').value==='oxidant'?0:1))}
+function render() {
+  locked = false;
+  const question = deck[index];
+  $('count').textContent = '第 ' + (index + 1) + ' 問 / ' + deck.length;
+  $('points').textContent = '正解 ' + correct + ' 問';
+  $('progress').max = deck.length;
+  $('progress').value = index;
+  $('tag').textContent = question[3] ? '還元剤として働くとき' : '酸化剤として働くとき';
+  $('question').textContent = question[0] + ' → ?';
+  $('feedback').className = 'feedback hidden';
+  $('reveal').disabled = false;
+  $('next').classList.add('hidden');
+  const buttons = choices[data.indexOf(question)].map(formula => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'option';
+    button.textContent = formula;
+    button.onclick = () => judge(formula);
+    return button;
+  });
+  $('options').replaceChildren(...buttons);
+  buttons[0].focus({ preventScroll: true });
+}
+function judge(choice) {
+  if (locked) return;
+  locked = true;
+  const question = deck[index];
+  const answer = question[1];
+  const ok = choice === answer;
+  if (ok) correct++;
+  else missed.push(question);
+  history.push({ q: question, ok });
+  for (const button of $('options').children) {
+    button.disabled = true;
+    if (button.textContent === answer) button.classList.add('correct');
+    else if (button.textContent === choice) button.classList.add('incorrect');
+  }
+  $('feedback').className = ok ? 'feedback' : 'feedback wrong';
+  const verdict = choice === undefined ? '' : ok ? '正解！ ' : '不正解。 ';
+  $('feedback').textContent = verdict + question[0] + ' → ' + answer;
+  $('points').textContent = '正解 ' + correct + ' 問';
+  $('progress').value = index + 1;
+  $('reveal').disabled = true;
+  $('next').classList.remove('hidden');
+  $('next').textContent = index === deck.length - 1 ? '結果を見る' : '次の問題 →';
+  $('next').focus();
+}
+function finish(){$('quiz').classList.add('hidden');$('result').classList.remove('hidden');$('score').textContent=`${correct} / ${deck.length}`;$('message').textContent=missed.length?`正答率 ${Math.round(correct/deck.length*100)}%。間違えた${missed.length}問を復習しよう。`:'全問正解！生成物をしっかり覚えています。';$('retry').disabled=!missed.length;$('review').replaceChildren();let table=document.createElement('table');let head=document.createElement('tr');for(const text of ['判定','反応前 → 生成物']){let th=document.createElement('th');th.textContent=text;head.append(th)}table.append(head);for(const h of history){let tr=document.createElement('tr'),a=document.createElement('td'),b=document.createElement('td');a.textContent=h.ok?'○':'×';b.textContent=h.q[0]+' → '+h.q[1]+'（'+(h.q[3]?'還元剤':'酸化剤')+'）';tr.append(a,b);table.append(tr)}$('review').append(table)}
+$('reveal').onclick=()=>judge();$('next').onclick=()=>{index++;index<deck.length?render():finish()};$('restart').onclick=()=>start(selected());$('mode').onchange=()=>start(selected());$('retry').onclick=()=>start(missed);$('again').onclick=()=>start(selected());start(selected());
+</script></body></html>
